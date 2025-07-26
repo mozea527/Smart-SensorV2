@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>?? Smart Lettuce Monitor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: #e0ffe0;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #1f1f1f;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 255, 128, 0.15);
+    }
+
+    h1 {
+      color: #00ff88;
+      font-size: 28px;
+      margin: 0;
+    }
+
+    .settings {
+      text-align: center;
+      padding: 10px;
+    }
+
+    .settings label {
+      margin: 0 15px;
+      font-size: 16px;
+    }
+
+    .container {
+      padding: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .sensor-card {
+      background: #1e1e1e;
+      border: 1px solid #00ff88;
+      border-radius: 12px;
+      width: 260px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0, 255, 128, 0.1);
+      text-align: center;
+    }
+
+    .sensor-card i {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #00d0ff;
+    }
+
+    .sensor-card h2 {
+      color: #00d0ff;
+      margin: 0;
+    }
+
+    .value {
+      font-size: 24px;
+      margin: 10px 0;
+      color: #ffffff;
+    }
+
+    .alert, .healthy {
+      font-weight: bold;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px auto;
+      width: 90%;
+      text-align: center;
+    }
+
+    .alert {
+      background: #ff3333;
+      color: #fff;
+      animation: blink 1s infinite alternate;
+    }
+
+    .healthy {
+      background: #1e8c4c;
+      color: #b4ffb4;
+      border: 2px solid #00ff88;
+      box-shadow: 0 0 10px #00ff88;
+    }
+
+    .tip {
+      background: #222;
+      border: 1px solid #00ff88;
+      color: #aaf;
+      padding: 15px;
+      margin: 10px auto;
+      border-radius: 8px;
+      width: 85%;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    @keyframes blink {
+      from {opacity: 1;}
+      to {opacity: 0.7;}
+    }
+
+    footer {
+      margin-top: 30px;
+      text-align: center;
+      color: #888;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>?? Smart Lettuce Monitoring System</h1>
+  </header>
+
+  <div class="settings">
+    <label>
+      <input type="checkbox" id="soundToggle" checked /> ?? Sound
+    </label>
+    <label>
+      <input type="checkbox" id="vibrationToggle" checked /> ?? Vibration
+    </label>
+  </div>
+
+  <div id="alertBox" class="alert" style="display: none;"></div>
+  <div id="healthyBox" class="healthy" style="display: none;">? Lettuce is Healthy! Great job! ??</div>
+  <div id="tipBox" class="tip" style="display: none;"></div>
+
+  <div class="container">
+    <div class="sensor-card">
+      <i class="fas fa-tint"></i>
+      <h2>Soil Moisture</h2>
+      <p class="value" id="moisture">--</p>
+    </div>
+
+    <div class="sensor-card">
+      <i class="fas fa-temperature-low"></i>
+      <h2>Soil Temperature</h2>
+      <p class="value" id="soilTemp">--</p>
+    </div>
+
+    <div class="sensor-card">
+      <i class="fas fa-water"></i>
+      <h2>Humidity</h2>
+      <p class="value" id="humidity">--</p>
+    </div>
+
+    <div class="sensor-card">
+      <i class="fas fa-vial"></i>
+      <h2>pH Level</h2>
+      <p class="value" id="ph">--</p>
+    </div>
+
+    <div class="sensor-card">
+      <i class="fas fa-sun"></i>
+      <h2>Light Intensity</h2>
+      <p class="value" id="light">--</p>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 Smart-Sensor | Lettuce Plant Health System
+  </footer>
+
+  <!-- Sound Notification -->
+  <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC5kHMBuFIfa0Ph7daiSeUEDIBZDeQn_U8",
+      authDomain: "smartsensorforlettuce.firebaseapp.com",
+      databaseURL: "https://smartsensorforlettuce-default-rtdb.firebaseio.com",
+      projectId: "smartsensorforlettuce",
+      storageBucket: "smartsensorforlettuce.appspot.com",
+      messagingSenderId: "233693585928",
+      appId: "1:233693585928:web:b76e1c515ab342b1bd27bd"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const sensors = {
+      moisture: db.ref("plantData/soilMoisture"),
+      soilTemp: db.ref("plantData/soilTemperature"),
+      humidity: db.ref("plantData/humidity"),
+      ph: db.ref("plantData/phLevel"),
+      light: db.ref("plantData/lightIntensity")
+    };
+
+    const alertBox = document.getElementById("alertBox");
+    const tipBox = document.getElementById("tipBox");
+    const healthyBox = document.getElementById("healthyBox");
+    const soundToggle = document.getElementById("soundToggle");
+    const vibrationToggle = document.getElementById("vibrationToggle");
+    const alertSound = document.getElementById("alertSound");
+
+    const state = {
+      moisture: 0,
+      soilTemp: 0,
+      humidity: 0,
+      ph: 0,
+      light: 0
+    };
+
+    function playAlert() {
+      if (soundToggle.checked) alertSound.play();
+      if (vibrationToggle.checked && navigator.vibrate) navigator.vibrate(300);
+    }
+
+    function updateState(sensor, value) {
+      state[sensor] = value;
+      checkHealth();
+    }
+
+    function showAlert(message, tip) {
+      alertBox.style.display = "block";
+      healthyBox.style.display = "none";
+      tipBox.style.display = "block";
+      alertBox.innerText = "?? " + message;
+      tipBox.innerText = tip;
+      playAlert();
+    }
+
+    function showHealthy() {
+      alertBox.style.display = "none";
+      tipBox.style.display = "none";
+      healthyBox.style.display = "block";
+    }
+
+    function checkHealth() {
+      const { moisture, soilTemp, humidity, ph, light } = state;
+
+      if (moisture < 30) {
+        showAlert("Soil is too dry!", "?? Water your lettuce. Ideal moisture: 40–70%.");
+      } else if (moisture > 80) {
+        showAlert("Soil is too wet!", "?? Overwatering! Let soil dry. Use well-drained soil.");
+      } else if (soilTemp < 10 || soilTemp > 30) {
+        showAlert("Soil temperature is not ideal!", "??? Keep soil between 15–25°C.");
+      } else if (humidity < 40 || humidity > 80) {
+        showAlert("Humidity is too low or high!", "??? Keep humidity 50–70% for lettuce.");
+      } else if (ph < 6.0 || ph > 7.0) {
+        showAlert("pH out of range!", "?? Adjust pH to 6.0–6.5 using soil amendments.");
+      } else if (light < 10000) {
+        showAlert("Light intensity too low!", "?? Move to sunlight. Lettuce needs 12–16 hrs/day.");
+      } else {
+        showHealthy();
+      }
+    }
+
+    sensors.moisture.on("value", snap => {
+      const val = snap.val();
+      document.getElementById("moisture").innerText = val + " %";
+      updateState("moisture", val);
+    });
+
+    sensors.soilTemp.on("value", snap => {
+      const val = snap.val();
+      document.getElementById("soilTemp").innerText = val + " °C";
+      updateState("soilTemp", val);
+    });
+
+    sensors.humidity.on("value", snap => {
+      const val = snap.val();
+      document.getElementById("humidity").innerText = val + " %";
+      updateState("humidity", val);
+    });
+
+    sensors.ph.on("value", snap => {
+      const val = snap.val();
+      document.getElementById("ph").innerText = val;
+      updateState("ph", val);
+    });
+
+    sensors.light.on("value", snap => {
+      const val = snap.val();
+      document.getElementById("light").innerText = val + " lux";
+      updateState("light", val);
+    });
+  </script>
+</body>
+</html>
